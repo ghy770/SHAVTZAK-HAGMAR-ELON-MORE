@@ -441,7 +441,7 @@
     <div class="container">
         <div class="header">
             <h1>🚀 מערכת ניהול משמרות</h1>
-            <div class="upgrade-badge">⭐ גירסה משודרגת ⭐</div>
+            <div class="upgrade-badge">⭐ גרסה בהרצה ⭐</div>
             <p style="color: #34495e; font-weight: 700; margin-top: 10px;">שבצק הגמ"ר אלון מורה</p>
         </div>
 
@@ -548,7 +548,7 @@
                             <option value="צופה">צופה</option>
                             <option value="מנהל">מנהל</option>
                         </select>
-                        <input id="newUserPassword" placeholder="סיסמה (חובה למנהלים)" type="password" style="display: none;"/>
+                        <input id="newUserPassword" placeholder="סיסמה (אופציונלי לחיילים, חובה למנהלים)" type="password" style="display: block;"/>
                         <button class="btn btn-small" onclick="addUser()">הוסף משתמש</button>
                     </div>
                 </div>
@@ -644,6 +644,47 @@
             availabilityHour: '08:00'
         };
 
+        // Load data from localStorage on startup
+        function loadData() {
+            try {
+                const savedData = localStorage.getItem('shiftSystemData');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    users = data.users || users;
+                    scheduleData = data.scheduleData || {};
+                    availabilityData = data.availabilityData || {};
+                    systemSettings = data.systemSettings || systemSettings;
+                    console.log('נתונים נטענו מהזיכרון המקומי');
+                }
+            } catch (error) {
+                console.error('שגיאה בטעינת נתונים:', error);
+            }
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            try {
+                const dataToSave = {
+                    users,
+                    scheduleData,
+                    availabilityData,
+                    systemSettings,
+                    lastSaved: new Date().toISOString()
+                };
+                localStorage.setItem('shiftSystemData', JSON.stringify(dataToSave));
+                console.log('נתונים נשמרו בזיכרון המקומי');
+            } catch (error) {
+                console.error('שגיאה בשמירת נתונים:', error);
+                showNotification('שגיאה בשמירת נתונים', 'error');
+            }
+        }
+
+        // Auto-save every 30 seconds
+        setInterval(saveData, 30000);
+
+        // Save before page unload
+        window.addEventListener('beforeunload', saveData);
+
         const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
         const shiftTypes = ['לילה', 'בוקר', 'צהרים', 'ערב'];
         const shiftHours = ['22:00-06:00', '06:00-14:00', '14:00-18:00', '18:00-22:00'];
@@ -653,16 +694,10 @@
             const hebrewMonths = ['תשרי', 'חשון', 'כסלו', 'טבת', 'שבט', 'אדר', 'ניסן', 'אייר', 'סיון', 'תמוז', 'אב', 'אלול'];
             const hebrewNumbers = ['', 'א\'', 'ב\'', 'ג\'', 'ד\'', 'ה\'', 'ו\'', 'ז\'', 'ח\'', 'ט\'', 'י\'', 'י"א', 'י"ב', 'י"ג', 'י"ד', 'ט"ו', 'ט"ז', 'י"ז', 'י"ח', 'י"ט', 'כ\'', 'כ"א', 'כ"ב', 'כ"ג', 'כ"ד', 'כ"ה', 'כ"ו', 'כ"ז', 'כ"ח', 'כ"ט', 'ל\''];
             
-            // Real Hebrew date calculation based on current date
-            const year = gregorianDate.getFullYear();
             const month = gregorianDate.getMonth();
             const day = gregorianDate.getDate();
             
-            // Hebrew year calculation
-            const hebrewYear = year + 3760;
-            
             // Approximate Hebrew month and day (simplified conversion)
-            // This is a basic approximation - for accurate conversion, a full Hebrew calendar library would be needed
             let hebrewMonth, hebrewDay;
             
             if (month >= 8) { // Sep-Dec maps roughly to Tishrei-Kislev
@@ -673,7 +708,7 @@
                 hebrewDay = Math.min(day + 3, 29);
             }
             
-            return `${hebrewNumbers[hebrewDay]} ${hebrewMonths[hebrewMonth]} ${hebrewYear}`;
+            return `${hebrewNumbers[hebrewDay]} ${hebrewMonths[hebrewMonth]}`; // רק יום וחודש עברי
         }
 
         function getHoliday(date) {
@@ -767,15 +802,16 @@
                 const userType = document.getElementById('userType').value;
 
                 if (!firstName || !lastName || !phone) {
-                    showNotification('יש למלא את כל השדות', 'warning');
+                    showNotification('יש למלא את כל השדות החובה', 'warning');
                     return;
                 }
 
                 const existingUser = users.find(u => u.phone === phone);
                 if (existingUser) {
-                    if (existingUser.type === 'מנהל' && existingUser.password) {
-                        const password = prompt(`הכנס סיסמה עבור ${existingUser.firstName} ${existingUser.lastName}:`);
-                        if (!password || password !== existingUser.password) {
+                    // Check password if user has one set
+                    if ((existingUser.type === 'מנהל' || existingUser.type === 'חייל') && existingUser.password) {
+                        const userPassword = prompt(`הכנס סיסמה עבור ${existingUser.firstName} ${existingUser.lastName}:`);
+                        if (!userPassword || userPassword !== existingUser.password) {
                             showNotification('סיסמה שגויה', 'error');
                             return;
                         }
@@ -787,7 +823,8 @@
                         firstName,
                         lastName,
                         phone,
-                        type: userType
+                        type: userType,
+                        password: '' // חיילים חדשים ללא סיסמה עד שהמנהל יגדיר
                     };
                     users.push(currentUser);
                 }
@@ -799,7 +836,7 @@
                 const selectedUser = users.find(u => u.id === userId);
                 
                 if (selectedUser) {
-                    if (selectedUser.type === 'מנהל' && selectedUser.password) {
+                    if ((selectedUser.type === 'מנהל' || selectedUser.type === 'חייל') && selectedUser.password) {
                         const password = prompt(`הכנס סיסמה עבור ${selectedUser.firstName} ${selectedUser.lastName}:`);
                         if (!password || password !== selectedUser.password) {
                             showNotification('סיסמה שגויה', 'error');
@@ -1041,6 +1078,7 @@
                     delete scheduleData[cellId];
                     generateScheduleTable();
                     updateStats();
+                    saveData(); // שמירה אוטומטית
                     showNotification('חייל הוסר מהמשמרת', 'success');
                 }
             } else if (employees.length > 0) {
@@ -1052,6 +1090,7 @@
                     scheduleData[cellId] = `${selectedEmp.firstName} ${selectedEmp.lastName}`;
                     generateScheduleTable();
                     updateStats();
+                    saveData(); // שמירה אוטומטית
                     showNotification(`${selectedEmp.firstName} ${selectedEmp.lastName} שובץ למשמרת`, 'success');
                 }
             } else {
@@ -1174,6 +1213,7 @@
 
             generateScheduleTable();
             updateStats();
+            saveData(); // שמירה אוטומטית
             
             setTimeout(() => {
                 showNotification('✅ שיבוץ הושלם לפי כללי השיבוץ החדשים!', 'success');
@@ -1205,13 +1245,17 @@
             const userType = document.getElementById('newUserType').value;
             const passwordField = document.getElementById('newUserPassword');
             
+            passwordField.style.display = 'block'; // תמיד מציג את שדה הסיסמה
+            
             if (userType === 'מנהל') {
-                passwordField.style.display = 'block';
                 passwordField.setAttribute('required', 'required');
-            } else {
-                passwordField.style.display = 'none';
+                passwordField.placeholder = 'סיסמה (חובה למנהלים)';
+            } else if (userType === 'חייל') {
                 passwordField.removeAttribute('required');
-                passwordField.value = '';
+                passwordField.placeholder = 'סיסמה לחייל (המנהל קובע)';
+            } else {
+                passwordField.removeAttribute('required');
+                passwordField.placeholder = 'סיסמה (לא נדרש לצופים)';
             }
         }
 
@@ -1243,10 +1287,11 @@
                 lastName,
                 phone,
                 type: userType,
-                password: userType === 'מנהל' ? password : ''
+                password: password || '' // המנהל קובע סיסמה לכולם
             };
 
             users.push(newUser);
+            saveData(); // שמירה אוטומטית
 
             document.getElementById('newFirstName').value = '';
             document.getElementById('newLastName').value = '';
@@ -1734,6 +1779,9 @@
             console.log('🚀 מערכת ניהול משמרות מוכנה!');
             console.log('מנהל כללי: סיסמה 322770');
             
+            // Load saved data first
+            loadData();
+            
             // Add backup event listener for login button
             const loginBtn = document.querySelector('#loginForm .btn');
             if (loginBtn) {
@@ -1745,6 +1793,12 @@
             
             updateQuickLoginOptions();
             showNotification('ברוכים הבאים למערכת! 🎉', 'success');
+            
+            // Show data status
+            const savedTime = localStorage.getItem('shiftSystemData');
+            if (savedTime) {
+                showNotification('נתונים קודמים נטענו בהצלחה! 💾', 'info');
+            }
         });
     </script>
 </body>
