@@ -645,11 +645,11 @@
         };
 
         // Google Apps Script URL - החלף את זה עם ה-URL שלך!
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGW6TQMM5ADi_dPHF_xNfb8ToWawvvhovV_CvVJSQSrIrZ0KfMA5eErcjrSKdjVnFIiw/exec';
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx6EkAeYoAYUEe88566jN_y_SQMcDLZ4vYpeMIat9ye/exec';
 
         // Google Sheets Integration Functions
         async function saveToGoogleSheets(dataType, data) {
-            if (GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbyGW6TQMM5ADi_dPHF_xNfb8ToWawvvhovV_CvVJSQSrIrZ0KfMA5eErcjrSKdjVnFIiw/exec') {
+            if (GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbx6EkAeYoAYUEe88566jN_y_SQMcDLZ4vYpeMIat9ye/exec') {
                 // אם עדיין לא הוגדר Google Script, השתמש ב-LocalStorage
                 saveData();
                 return;
@@ -686,7 +686,7 @@
         }
 
         async function loadFromGoogleSheets(dataType) {
-            if (GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbyGW6TQMM5ADi_dPHF_xNfb8ToWawvvhovV_CvVJSQSrIrZ0KfMA5eErcjrSKdjVnFIiw/exec') {
+            if (GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbx6EkAeYoAYUEe88566jN_y_SQMcDLZ4vYpeMIat9ye/exec') {
                 // אם עדיין לא הוגדר Google Script, השתמש ב-LocalStorage
                 loadData();
                 return null;
